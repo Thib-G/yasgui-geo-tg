@@ -53,4 +53,4 @@ MIT
 
 ## Author
 
-[Your Name]
+Thibaut Goelff
