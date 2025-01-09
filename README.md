@@ -22,22 +22,22 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 ## Usage
 
 ```javascript
-import "@zazuko/yasgui/build/yasgui.min.css";
-import Yasgui from "@zazuko/yasgui";
+import '@zazuko/yasgui/build/yasgui.min.css';
+import Yasgui from '@zazuko/yasgui';
 
-import GeoPlugin from "yasgui-geo-tg";
+import GeoPlugin from 'yasgui-geo-tg';
 
 //Register the plugin to Yasr
-Yasgui.Yasr.registerPlugin("geo", GeoPlugin);
+Yasgui.Yasr.registerPlugin('geo', GeoPlugin);
 
-const yasgui = new Yasgui(document.getElementById("yasgui"), {
+const yasgui = new Yasgui(document.getElementById('yasgui'), {
   // Set the SPARQL endpoint
   requestConfig: {
-    endpoint: "https://dbpedia.org/sparql",
+    endpoint: 'https://dbpedia.org/sparql',
   },
   yasr: {
-    pluginOrder: ["table", "response", "geo"], // Enable geo plugin alongside default table
-    defaultPlugin: "geo",
+    pluginOrder: ['table', 'response', 'geo'], // Enable geo plugin alongside default table
+    defaultPlugin: 'geo',
   },
 });
 ```
