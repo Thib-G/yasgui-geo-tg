@@ -41,6 +41,8 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
   },
 });
 ```
+## Demo
+You can try it here: https://linked-data.goelff.be/yasgui/
 
 ## Contributing
 
