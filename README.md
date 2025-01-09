@@ -1,10 +1,12 @@
 # yasgui-geo-tg
 
-A geographic SPARQL endpoint extension for YASGUI.
+A geographic extension for YASGUI. This plugin allows the visualisation of SPARQL results on a map.
 
 ## Installation
 
 ```bash
+npm install leaflet
+npm install wellknown
 npm install @zazuko/yasgui
 npm install git+https://github.com/Thib-G/yasgui-geo-tg.git
 ```
@@ -17,7 +19,6 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 
 - Geographic data visualization
 - Integration with YASGUI
-- SPARQL endpoint support
 
 ## Usage
 
