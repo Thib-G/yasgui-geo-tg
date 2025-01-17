@@ -1,0 +1,100 @@
+PREFIX gsp: <http://www.opengis.net/ont/geosparql#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX xyz: <http://sparql.xyz/facade-x/data/>
+PREFIX fx: <http://sparql.xyz/facade-x/ns/>
+
+SELECT * WHERE 
+{
+  FILTER (?short_name_iso2 != 'RU')
+  {    
+    SELECT ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 (STRDT(CONCAT("POLYGON(",GROUP_CONCAT(CONCAT(?coordinate_string); SEPARATOR=", "),")"), gsp:wktLiteral) AS ?wkt)
+    WHERE {
+      SELECT ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 ?polygon_index (CONCAT("(",GROUP_CONCAT(CONCAT(?wkt_coordinate); SEPARATOR=", "),")") AS ?coordinate_string)
+      WHERE {
+        SERVICE <x-sparql-anything:location:> {
+          fx:properties fx:location "https://raw.githubusercontent.com/leakyMirror/map-of-europe/refs/heads/master/GeoJSON/europe.geojson" ;
+                        fx:media-type  "application/json" .	
+          ?s xyz:type "Feature";
+          xyz:geometry ?geom;
+          xyz:properties ?props.
+
+          ?props xyz:NAME ?name;
+          xyz:FIPS ?short_name_fips;
+          xyz:ISO2 ?short_name_iso2;
+          xyz:ISO3 ?short_name_iso3.
+
+          ?geom xyz:type ?wkt_type;
+          xyz:coordinates ?multi_polygon.
+
+          ?multi_polygon ?list_polygon_element ?polygon .
+          BIND (xsd:integer(replace(STR(?list_polygon_element),'http://www.w3.org/1999/02/22-rdf-syntax-ns#_','')) AS ?polygon_index)
+
+          ?polygon ?list_coordinate_element ?coordinate .
+          BIND (xsd:integer(replace(STR(?list_coordinate_element),'http://www.w3.org/1999/02/22-rdf-syntax-ns#_','')) AS ?coordinate_index)
+
+          ?coordinate rdf:_1 ?longitude;
+                      rdf:_2 ?latitude.
+
+          BIND (CONCAT(str(?longitude), " ", str(?latitude)) AS ?wkt_coordinate)  
+          
+          FILTER (str(?wkt_type) = "Polygon")
+        }
+      }
+      GROUP BY ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 ?polygon_index
+      ORDER BY ?coordinate_index 
+    }
+    GROUP BY ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3
+    ORDER BY ?polygon_index 
+  }
+  UNION
+  {
+    SELECT ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 (STRDT(CONCAT("MULTIPOLYGON(",GROUP_CONCAT(CONCAT(?polygon_string); SEPARATOR=", "),")"), gsp:wktLiteral) AS ?wkt)
+    WHERE {
+      SELECT ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 ?multipolygon_index (CONCAT("(",GROUP_CONCAT(CONCAT(?coordinate_string); SEPARATOR="), ("),")") AS ?polygon_string)
+      WHERE {
+        SELECT ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 ?multipolygon_index ?polygon_index (CONCAT("(",GROUP_CONCAT(CONCAT(?wkt_coordinate); SEPARATOR=", "),")") AS ?coordinate_string)
+        WHERE {
+        SERVICE <x-sparql-anything:location:> {
+          fx:properties fx:location "https://raw.githubusercontent.com/leakyMirror/map-of-europe/refs/heads/master/GeoJSON/europe.geojson" ;
+                        fx:media-type  "application/json" .	
+            ?s xyz:type "Feature";
+            xyz:geometry ?geom;
+            xyz:properties ?props.
+
+            ?props xyz:NAME ?name;
+            xyz:FIPS ?short_name_fips;
+            xyz:ISO2 ?short_name_iso2;
+            xyz:ISO3 ?short_name_iso3.
+
+            ?geom xyz:type ?wkt_type;
+            
+            xyz:coordinates ?multi_polygon_collection.
+
+            ?multi_polygon_collection ?list_multipolygon_element ?multi_polygon.
+            BIND (xsd:integer(replace(STR(?list_multipolygon_element),'http://www.w3.org/1999/02/22-rdf-syntax-ns#_','')) AS ?multipolygon_index)
+
+            ?multi_polygon ?list_polygon_element ?polygon .
+            BIND (xsd:integer(replace(STR(?list_polygon_element),'http://www.w3.org/1999/02/22-rdf-syntax-ns#_','')) AS ?polygon_index)
+
+            ?polygon ?list_coordinate_element ?coordinate .
+            BIND (xsd:integer(replace(STR(?list_coordinate_element),'http://www.w3.org/1999/02/22-rdf-syntax-ns#_','')) AS ?coordinate_index)
+
+            ?coordinate rdf:_1 ?longitude;
+                        rdf:_2 ?latitude.
+
+            BIND (CONCAT(str(?longitude), " ", str(?latitude)) AS ?wkt_coordinate)  
+            
+            FILTER (str(?wkt_type) = "MultiPolygon")
+          }
+        }
+        GROUP BY ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 ?multipolygon_index ?polygon_index
+        ORDER BY ?coordinate_index 
+      }
+      GROUP BY ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3 ?multipolygon_index
+      ORDER BY ?polygon_index 
+    }
+    GROUP BY ?name ?short_name_fips ?short_name_iso2 ?short_name_iso3
+    ORDER BY ?multipolygon_index 
+  }
+}
