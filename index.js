@@ -128,14 +128,21 @@ class GeoPlugin {
         this.yasr.results.json.results.bindings,
         colName,
       );
+      
+      const DEFAULT_COLOR = '#3388ff'; // Choose your default color
 
       const newLayers = L.geoJson(geojson, {
-        pointToLayer: (feature, latlng) =>
-          L.circleMarker(latlng, {
+        pointToLayer: (feature, latlng) => {
+          const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
+          return L.circleMarker(latlng, {
             radius: 4,
             weight: 2,
+            color: color,
+            fillColor: color,
             opacity: 0.7,
-          }),
+            fillOpacity: 0.5,
+          });
+        },
         onEachFeature: (feature, layer) => {
           const p = feature.properties;
           const popupContent = Object.keys(p).map(
@@ -147,6 +154,16 @@ class GeoPlugin {
               }`,
           );
           layer.bindPopup(popupContent.join('<br>'));
+        },
+        style: (feature) => {
+          const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
+          return {
+            color: color,          // Line/Polygon border color
+            fillColor: color,      // Polygon fill color
+            weight: 2,             // Line/Polygon border thickness
+            opacity: 0.7,          // Line/Polygon border opacity
+            fillOpacity: 0.5       // Polygon fill opacity
+          };
         },
       });
       this.lg.addLayer(newLayers);
