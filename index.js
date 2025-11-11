@@ -16,7 +16,7 @@ const parseWKT = (input) => {
       wktString = sridMatch[2];
     }
 
-    const geo = wktToGeoJSON(wktString, { proj: proj4 }) || { type: 'Point', coordinates: [] };
+    const geo = wktToGeoJSON(wktString, { proj: proj4 });
 
     // If source SRID is known, GeoJSON expects CRS <http://www.opengis.net/def/crs/OGC/1.3/CRS84> with longitude/latitude order
     if (srid) {
@@ -34,7 +34,6 @@ const parseWKT = (input) => {
     return geo;
   } catch (e) {
     console.error('Error parsing WKT:', e);
-    return { type: 'Point', coordinates: [] };
   }
 };
 
