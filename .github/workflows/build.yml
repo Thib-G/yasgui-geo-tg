@@ -1,5 +1,8 @@
 name: Build plugin
 
+permissions:
+  contents: write
+
 on:
   release:
     types: [published]
