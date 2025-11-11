@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@zazuko/yasgui": "^4.6.0",
+    "betterknown": "^1.0.0",
     "leaflet": "^1.9.4",
-    "wellknown": "^0.5.0"
+    "proj4": "^2.19.10"
   }
 }
