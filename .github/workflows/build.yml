@@ -34,6 +34,10 @@ jobs:
             --format=iife \
             --global-name=YasguiGeoTg \
             --define:process.env.NODE_ENV=\"production\" \
+            --loader:.png=dataurl \
+            --loader:.svg=dataurl \
+            --loader:.jpg=dataurl \
+            --loader:.gif=dataurl \
             --outfile=dist/yasgui-geo-tg.js
 
       - name: Build minified bundle with esbuild
@@ -44,6 +48,10 @@ jobs:
             --format=iife \
             --global-name=YasguiGeoTg \
             --define:process.env.NODE_ENV=\"production\" \
+            --loader:.png=dataurl \
+            --loader:.svg=dataurl \
+            --loader:.jpg=dataurl \
+            --loader:.gif=dataurl \
             --outfile=dist/yasgui-geo-tg.min.js
 
       - name: Upload dist artifacts
