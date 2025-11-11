@@ -96,6 +96,47 @@ Notes for testing reprojection behavior:
 - For `SRID=4326;POINT(lat lon)` inputs, the library treats the numbers as latitude then longitude and will swap them to produce valid GeoJSON `[lon, lat]`.
 - If reprojection doesn't happen immediately for a non-embedded SRID, call `await ensureProjDef('<srid>')` and then re-run the plugin draw to apply reprojection.
 
+## Using the Minified Bundle in a Browser (HTML/JS)
+
+After building the project (or downloading the release assets), you can include the minified IIFE bundle directly in a plain HTML page. The bundle exposes the plugin on a global variable named `YasguiGeoTg` (or `YasguiGeoTg.default` depending on how the bundler/runtime handles default exports).
+
+Minimal example:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>YASGUI Geo Demo</title>
+    <!-- Leaflet CSS & JS (from CDN) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- YASGUI CSS & JS (from CDN or local build) -->
+    <link rel="stylesheet" href="https://unpkg.com/@zazuko/yasgui@4.6.0/build/yasgui.min.css" />
+    <script src="https://unpkg.com/@zazuko/yasgui@4.6.0/dist/yasgui.min.js"></script>
+  </head>
+  <body>
+    <div id="yasgui" style="height:600px"></div>
+
+    <!-- Plugin bundle built with esbuild -->
+    <script src="/dist/yasgui-geo-tg.min.js"></script>
+
+    <script>
+      // The bundle exposes the plugin constructor on window.YasguiGeoTg
+      const GeoPlugin = window.YasguiGeoTg && (window.YasguiGeoTg.default || window.YasguiGeoTg);
+
+      // Register the plugin with YASR before creating Yasgui
+      Yasgui.Yasr.registerPlugin('geo', GeoPlugin);
+
+      const yasgui = new Yasgui(document.getElementById('yasgui'), {
+        requestConfig: { endpoint: 'https://dbpedia.org/sparql' },
+        yasr: { pluginOrder: ['table','response','geo'], defaultPlugin: 'geo' },
+      });
+    </script>
+  </body>
+</html>
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
