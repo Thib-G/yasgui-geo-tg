@@ -6,7 +6,7 @@ A geographic extension for YASGUI. This plugin allows the visualisation of SPARQ
 
 ```bash
 npm install leaflet
-npm install wellknown
+npm install betterknown
 npm install @zazuko/yasgui
 npm install git+https://github.com/Thib-G/yasgui-geo-tg.git
 ```
@@ -19,6 +19,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 
 - Geographic data visualization
 - Integration with YASGUI
+- Supports multiple coordinates systems
 
 ## Usage
 
@@ -43,6 +44,57 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 });
 
 ```
+
+## Coordinate Transformations
+
+- **Supported SRIDs (embedded):** `4326`, `3857`, `31370`, `4258`, `3035`, `25832`, `25833`.
+- **Behavior:** The plugin accepts WKT literals (and Geosparql WKT strings) and will:
+  - Normalize URI-based CRS like `<http://.../4326> POINT(...)` into `SRID=4326;POINT(...)`.
+  - Drop the special CRS URI `<http://www.opengis.net/def/crs/OGC/1.3/CRS84>` because CRS84 is the WKT default (longitude,latitude).
+  - When a WKT specifies `SRID=4326`, the implementation assumes the WKT coordinates follow the standard with latitude-first order (axis order lat,lon) and automatically swaps them to longitude-first when producing GeoJSON (GeoJSON expects `[lon, lat]`).
+  - If a source SRID differs from `4326`, the plugin will reproject geometries to `EPSG:4326` when a proj4 definition is available.
+
+## Auto-loading proj4 Definitions
+
+- The package includes embedded proj4 definitions for common SRIDs listed above and registers them at module initialization.
+- For SRIDs not embedded, the helper `ensureProjDef(srid)` can be used to fetch a proj4 definition from `https://epsg.io/<srid>.proj4` and register it with `proj4` at runtime. After fetching, re-render the plugin (call the plugin's `draw()` or `updateMap()` method) to apply reprojection.
+
+API notes:
+- `ensureProjDef(srid)`: Async helper to fetch and register a proj4 definition for a numeric SRID (exported).
+
+Example (in application code):
+```javascript
+import { ensureProjDef } from 'yasgui-geo-tg';
+// ensure EPSG:25832 is registered, then redraw the plugin
+await ensureProjDef('25832');
+geoPlugin.draw();
+```
+
+## Development & Testing
+
+- Install dependencies:
+
+```bash
+npm install
+```
+
+- Run the local dev server (uses `vite`):
+
+```bash
+npm run dev
+```
+
+- Build and preview the demo:
+
+```bash
+npm run build:demo
+npm run preview:demo
+```
+
+Notes for testing reprojection behavior:
+- Provide WKT literals with the CRS URI form: e.g. `<http://www.opengis.net/def/crs/EPSG/0/25832> POINT(500000 5700000)` and ensure the SRID is registered (see `ensureProjDef`).
+- For `SRID=4326;POINT(lat lon)` inputs, the library treats the numbers as latitude then longitude and will swap them to produce valid GeoJSON `[lon, lat]`.
+- If reprojection doesn't happen immediately for a non-embedded SRID, call `await ensureProjDef('<srid>')` and then re-run the plugin draw to apply reprojection.
 
 ## Contributing
 
