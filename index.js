@@ -365,4 +365,5 @@ class GeoPlugin {
   }
 }
 
+export { ensureProjDef };
 export default GeoPlugin;
