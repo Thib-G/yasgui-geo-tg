@@ -1,0 +1,83 @@
+name: Build plugin
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build JS bundles
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Build unminified bundle with esbuild
+        run: |
+          npx esbuild index.js \
+            --bundle \
+            --format=iife \
+            --global-name=YasguiGeoTg \
+            --define:process.env.NODE_ENV=\"production\" \
+            --outfile=dist/yasgui-geo-tg.js
+
+      - name: Build minified bundle with esbuild
+        run: |
+          npx esbuild index.js \
+            --bundle \
+            --minify \
+            --format=iife \
+            --global-name=YasguiGeoTg \
+            --define:process.env.NODE_ENV=\"production\" \
+            --outfile=dist/yasgui-geo-tg.min.js
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yasgui-geo-tg-dist
+          path: dist/
+
+      - name: Create GitHub Release for tag
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          body: |
+            Bundles produced by CI for tag ${{ github.ref_name }}.
+          draft: false
+          prerelease: false
+
+      - name: Upload bundle to release (unminified)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/yasgui-geo-tg.js
+          asset_name: yasgui-geo-tg.js
+          asset_content_type: application/javascript
+
+      - name: Upload bundle to release (minified)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/yasgui-geo-tg.min.js
+          asset_name: yasgui-geo-tg.min.js
+          asset_content_type: application/javascript
