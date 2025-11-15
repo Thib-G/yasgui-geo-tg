@@ -6,6 +6,8 @@ It depends on [Leaflet](https://leafletjs.com/) and [wellknown](https://github.c
 ## Installation
 
 ```bash
+npm install leaflet
+npm install betterknown
 npm install @zazuko/yasgui
 npm install git+https://github.com/Thib-G/yasgui-geo-tg.git
 ```
@@ -18,6 +20,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 
 - Geographic data visualization
 - Integration with YASGUI
+- Supports multiple coordinates systems
 
 ## Usage
 
@@ -42,12 +45,100 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 });
 ```
 
-## Demo
+## Coordinate Transformations
 
-- You can try it here: https://linked-data.goelff.be/yasgui/
-- Or click [HERE](<https://linked-data.goelff.be/yasgui/#query=PREFIX%20gsp%3A%20%3Chttp%3A%2F%2Fwww.opengis.net%2Font%2Fgeosparql%23%3E%0APREFIX%20rdf%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0APREFIX%20xsd%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0APREFIX%20xyz%3A%20%3Chttp%3A%2F%2Fsparql.xyz%2Ffacade-x%2Fdata%2F%3E%0APREFIX%20fx%3A%20%3Chttp%3A%2F%2Fsparql.xyz%2Ffacade-x%2Fns%2F%3E%0A%0ASELECT%20*%20WHERE%20%0A%7B%0A%20%20FILTER%20(%3Fshort_name_iso2%20!%3D%20'RU')%0A%20%20%7B%20%20%20%20%0A%20%20%20%20SELECT%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20(STRDT(CONCAT(%22POLYGON(%22%2CGROUP_CONCAT(CONCAT(%3Fcoordinate_string)%3B%20SEPARATOR%3D%22%2C%20%22)%2C%22)%22)%2C%20gsp%3AwktLiteral)%20AS%20%3Fwkt)%0A%20%20%20%20WHERE%20%7B%0A%20%20%20%20%20%20SELECT%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20%3Fpolygon_index%20(CONCAT(%22(%22%2CGROUP_CONCAT(CONCAT(%3Fwkt_coordinate)%3B%20SEPARATOR%3D%22%2C%20%22)%2C%22)%22)%20AS%20%3Fcoordinate_string)%0A%20%20%20%20%20%20WHERE%20%7B%0A%20%20%20%20%20%20%20%20SERVICE%20%3Cx-sparql-anything%3Alocation%3A%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20fx%3Aproperties%20fx%3Alocation%20%22https%3A%2F%2Fraw.githubusercontent.com%2FleakyMirror%2Fmap-of-europe%2Frefs%2Fheads%2Fmaster%2FGeoJSON%2Feurope.geojson%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20fx%3Amedia-type%20%20%22application%2Fjson%22%20.%09%0A%20%20%20%20%20%20%20%20%20%20%3Fs%20xyz%3Atype%20%22Feature%22%3B%0A%20%20%20%20%20%20%20%20%20%20xyz%3Ageometry%20%3Fgeom%3B%0A%20%20%20%20%20%20%20%20%20%20xyz%3Aproperties%20%3Fprops.%0A%0A%20%20%20%20%20%20%20%20%20%20%3Fprops%20xyz%3ANAME%20%3Fname%3B%0A%20%20%20%20%20%20%20%20%20%20xyz%3AFIPS%20%3Fshort_name_fips%3B%0A%20%20%20%20%20%20%20%20%20%20xyz%3AISO2%20%3Fshort_name_iso2%3B%0A%20%20%20%20%20%20%20%20%20%20xyz%3AISO3%20%3Fshort_name_iso3.%0A%0A%20%20%20%20%20%20%20%20%20%20%3Fgeom%20xyz%3Atype%20%3Fwkt_type%3B%0A%20%20%20%20%20%20%20%20%20%20xyz%3Acoordinates%20%3Fmulti_polygon.%0A%0A%20%20%20%20%20%20%20%20%20%20%3Fmulti_polygon%20%3Flist_polygon_element%20%3Fpolygon%20.%0A%20%20%20%20%20%20%20%20%20%20BIND%20(xsd%3Ainteger(replace(STR(%3Flist_polygon_element)%2C'http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23_'%2C''))%20AS%20%3Fpolygon_index)%0A%0A%20%20%20%20%20%20%20%20%20%20%3Fpolygon%20%3Flist_coordinate_element%20%3Fcoordinate%20.%0A%20%20%20%20%20%20%20%20%20%20BIND%20(xsd%3Ainteger(replace(STR(%3Flist_coordinate_element)%2C'http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23_'%2C''))%20AS%20%3Fcoordinate_index)%0A%0A%20%20%20%20%20%20%20%20%20%20%3Fcoordinate%20rdf%3A_1%20%3Flongitude%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20rdf%3A_2%20%3Flatitude.%0A%0A%20%20%20%20%20%20%20%20%20%20BIND%20(CONCAT(str(%3Flongitude)%2C%20%22%20%22%2C%20str(%3Flatitude))%20AS%20%3Fwkt_coordinate)%20%20%0A%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20FILTER%20(str(%3Fwkt_type)%20%3D%20%22Polygon%22)%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20GROUP%20BY%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20%3Fpolygon_index%0A%20%20%20%20%20%20ORDER%20BY%20%3Fcoordinate_index%20%0A%20%20%20%20%7D%0A%20%20%20%20GROUP%20BY%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%0A%20%20%20%20ORDER%20BY%20%3Fpolygon_index%20%0A%20%20%7D%0A%20%20UNION%0A%20%20%7B%0A%20%20%20%20SELECT%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20(STRDT(CONCAT(%22MULTIPOLYGON(%22%2CGROUP_CONCAT(CONCAT(%3Fpolygon_string)%3B%20SEPARATOR%3D%22%2C%20%22)%2C%22)%22)%2C%20gsp%3AwktLiteral)%20AS%20%3Fwkt)%0A%20%20%20%20WHERE%20%7B%0A%20%20%20%20%20%20SELECT%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20%3Fmultipolygon_index%20(CONCAT(%22(%22%2CGROUP_CONCAT(CONCAT(%3Fcoordinate_string)%3B%20SEPARATOR%3D%22)%2C%20(%22)%2C%22)%22)%20AS%20%3Fpolygon_string)%0A%20%20%20%20%20%20WHERE%20%7B%0A%20%20%20%20%20%20%20%20SELECT%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20%3Fmultipolygon_index%20%3Fpolygon_index%20(CONCAT(%22(%22%2CGROUP_CONCAT(CONCAT(%3Fwkt_coordinate)%3B%20SEPARATOR%3D%22%2C%20%22)%2C%22)%22)%20AS%20%3Fcoordinate_string)%0A%20%20%20%20%20%20%20%20WHERE%20%7B%0A%20%20%20%20%20%20%20%20SERVICE%20%3Cx-sparql-anything%3Alocation%3A%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20fx%3Aproperties%20fx%3Alocation%20%22https%3A%2F%2Fraw.githubusercontent.com%2FleakyMirror%2Fmap-of-europe%2Frefs%2Fheads%2Fmaster%2FGeoJSON%2Feurope.geojson%22%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20fx%3Amedia-type%20%20%22application%2Fjson%22%20.%09%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fs%20xyz%3Atype%20%22Feature%22%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20xyz%3Ageometry%20%3Fgeom%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20xyz%3Aproperties%20%3Fprops.%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fprops%20xyz%3ANAME%20%3Fname%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20xyz%3AFIPS%20%3Fshort_name_fips%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20xyz%3AISO2%20%3Fshort_name_iso2%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20xyz%3AISO3%20%3Fshort_name_iso3.%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fgeom%20xyz%3Atype%20%3Fwkt_type%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20xyz%3Acoordinates%20%3Fmulti_polygon_collection.%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fmulti_polygon_collection%20%3Flist_multipolygon_element%20%3Fmulti_polygon.%0A%20%20%20%20%20%20%20%20%20%20%20%20BIND%20(xsd%3Ainteger(replace(STR(%3Flist_multipolygon_element)%2C'http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23_'%2C''))%20AS%20%3Fmultipolygon_index)%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fmulti_polygon%20%3Flist_polygon_element%20%3Fpolygon%20.%0A%20%20%20%20%20%20%20%20%20%20%20%20BIND%20(xsd%3Ainteger(replace(STR(%3Flist_polygon_element)%2C'http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23_'%2C''))%20AS%20%3Fpolygon_index)%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fpolygon%20%3Flist_coordinate_element%20%3Fcoordinate%20.%0A%20%20%20%20%20%20%20%20%20%20%20%20BIND%20(xsd%3Ainteger(replace(STR(%3Flist_coordinate_element)%2C'http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23_'%2C''))%20AS%20%3Fcoordinate_index)%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Fcoordinate%20rdf%3A_1%20%3Flongitude%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20rdf%3A_2%20%3Flatitude.%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20BIND%20(CONCAT(str(%3Flongitude)%2C%20%22%20%22%2C%20str(%3Flatitude))%20AS%20%3Fwkt_coordinate)%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20FILTER%20(str(%3Fwkt_type)%20%3D%20%22MultiPolygon%22)%0A%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20GROUP%20BY%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20%3Fmultipolygon_index%20%3Fpolygon_index%0A%20%20%20%20%20%20%20%20ORDER%20BY%20%3Fcoordinate_index%20%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20GROUP%20BY%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%20%3Fmultipolygon_index%0A%20%20%20%20%20%20ORDER%20BY%20%3Fpolygon_index%20%0A%20%20%20%20%7D%0A%20%20%20%20GROUP%20BY%20%3Fname%20%3Fshort_name_fips%20%3Fshort_name_iso2%20%3Fshort_name_iso3%0A%20%20%20%20ORDER%20BY%20%3Fmultipolygon_index%20%0A%20%20%7D%0A%7D&endpoint=https%3A%2F%2Flinked-data.goelff.be%2Fsparql.anything&requestMethod=POST&tabTitle=Query&headers=%7B%7D&contentTypeConstruct=application%2Fn-triples%2C*%2F*%3Bq%3D0.9&contentTypeSelect=application%2Fsparql-results%2Bjson%2C*%2F*%3Bq%3D0.9&outputFormat=geo&outputSettings=%7B%7D>) to see [MathiasVDA](https://github.com/MathiasVDA)'s [crazy query](crazy-query.sparql) to convert a geojson file to RDF and then to `http://www.opengis.net/ont/geosparql#wktLiteral` using [Sparql Anything](https://github.com/SPARQL-Anything/sparql.anything).
+- **Supported SRIDs (embedded):** `4326`, `3857`, `31370`, `4258`, `3035`, `25832`, `25833`.
+- **Behavior:** The plugin accepts WKT literals (and Geosparql WKT strings) and will:
+  - Normalize URI-based CRS like `<http://.../4326> POINT(...)` into `SRID=4326;POINT(...)`.
+  - Drop the special CRS URI `<http://www.opengis.net/def/crs/OGC/1.3/CRS84>` because CRS84 is the WKT default (longitude,latitude).
+  - When a WKT specifies `SRID=4326`, the implementation assumes the WKT coordinates follow the standard with latitude-first order (axis order lat,lon) and automatically swaps them to longitude-first when producing GeoJSON (GeoJSON expects `[lon, lat]`).
+  - If a source SRID differs from `4326`, the plugin will reproject geometries to `EPSG:4326` when a proj4 definition is available.
 
-![Crazy Query](crazy-query.png 'Crazy Query')
+## Auto-loading proj4 Definitions
+
+- The package includes embedded proj4 definitions for common SRIDs listed above and registers them at module initialization.
+- For SRIDs not embedded, the helper `ensureProjDef(srid)` can be used to fetch a proj4 definition from `https://epsg.io/<srid>.proj4` and register it with `proj4` at runtime. After fetching, re-render the plugin (call the plugin's `draw()` or `updateMap()` method) to apply reprojection.
+
+API notes:
+
+- `ensureProjDef(srid)`: Async helper to fetch and register a proj4 definition for a numeric SRID (exported).
+
+Example (in application code):
+
+```javascript
+import { ensureProjDef } from 'yasgui-geo-tg';
+// ensure EPSG:25832 is registered, then redraw the plugin
+await ensureProjDef('25832');
+geoPlugin.draw();
+```
+
+## Development & Testing
+
+- Install dependencies:
+
+```bash
+npm install
+```
+
+- Run the local dev server (uses `vite`):
+
+```bash
+npm run dev
+```
+
+- Build and preview the demo:
+
+```bash
+npm run build:demo
+npm run preview:demo
+```
+
+Notes for testing reprojection behavior:
+
+- Provide WKT literals with the CRS URI form: e.g. `<http://www.opengis.net/def/crs/EPSG/0/25832> POINT(500000 5700000)` and ensure the SRID is registered (see `ensureProjDef`).
+- For `SRID=4326;POINT(lat lon)` inputs, the library treats the numbers as latitude then longitude and will swap them to produce valid GeoJSON `[lon, lat]`.
+- If reprojection doesn't happen immediately for a non-embedded SRID, call `await ensureProjDef('<srid>')` and then re-run the plugin draw to apply reprojection.
+
+## Using the Minified Bundle in a Browser (HTML/JS)
+
+After building the project (or downloading the release assets), you can include the minified IIFE bundle directly in a plain HTML page. The bundle exposes the plugin on a global variable named `YasguiGeoTg` (or `YasguiGeoTg.default` depending on how the bundler/runtime handles default exports).
+
+Minimal example:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>YASGUI Geo Demo</title>
+    <!-- Leaflet CSS & JS (from CDN) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- YASGUI CSS & JS (from CDN or local build) -->
+    <link rel="stylesheet" href="https://unpkg.com/@zazuko/yasgui@4.6.0/build/yasgui.min.css" />
+    <script src="https://unpkg.com/@zazuko/yasgui@4.6.0/dist/yasgui.min.js"></script>
+  </head>
+  <body>
+    <div id="yasgui" style="height:600px"></div>
+
+    <!-- Plugin bundle built with esbuild -->
+    <script src="/dist/yasgui-geo-tg.min.js"></script>
+
+    <script>
+      // The bundle exposes the plugin constructor on window.YasguiGeoTg
+      const GeoPlugin = window.YasguiGeoTg && (window.YasguiGeoTg.default || window.YasguiGeoTg);
+
+      // Register the plugin with YASR before creating Yasgui
+      Yasgui.Yasr.registerPlugin('geo', GeoPlugin);
+
+      const yasgui = new Yasgui(document.getElementById('yasgui'), {
+        requestConfig: { endpoint: 'https://dbpedia.org/sparql' },
+        yasr: { pluginOrder: ['table', 'response', 'geo'], defaultPlugin: 'geo' },
+      });
+    </script>
+  </body>
+</html>
+```
 
 ## Contributing
 

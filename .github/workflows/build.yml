@@ -1,0 +1,76 @@
+name: Build plugin
+
+permissions:
+  contents: write
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build JS bundles
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Build unminified bundle with esbuild
+        run: |
+          npx esbuild index.js \
+            --bundle \
+            --format=iife \
+            --global-name=YasguiGeoTg \
+            --define:process.env.NODE_ENV=\"production\" \
+            --loader:.png=dataurl \
+            --loader:.svg=dataurl \
+            --loader:.jpg=dataurl \
+            --loader:.gif=dataurl \
+            --outfile=dist/yasgui-geo-tg.js
+
+      - name: Build minified bundle with esbuild
+        run: |
+          npx esbuild index.js \
+            --bundle \
+            --minify \
+            --format=iife \
+            --global-name=YasguiGeoTg \
+            --define:process.env.NODE_ENV=\"production\" \
+            --loader:.png=dataurl \
+            --loader:.svg=dataurl \
+            --loader:.jpg=dataurl \
+            --loader:.gif=dataurl \
+            --outfile=dist/yasgui-geo-tg.min.js
+
+      - name: Create minified CSS (if available)
+        run: |
+          # prefer a root style.css, then demo/style.css, otherwise create a minimal placeholder
+          if [ -f style.css ]; then
+            cat style.css > dist/yasgui-geo-tg.min.css
+          elif [ -f demo/style.css ]; then
+            cat demo/style.css > dist/yasgui-geo-tg.min.css
+          else
+            echo '/* yasgui-geo-tg: no CSS provided */' > dist/yasgui-geo-tg.min.css
+          fi
+
+      - name: Upload minified JS to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/yasgui-geo-tg.min.js
+            dist/yasgui-geo-tg.min.css
