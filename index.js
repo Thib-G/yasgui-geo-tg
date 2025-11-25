@@ -36,7 +36,7 @@ const basemaps = {
 const conversions = {
   'http://www.opengis.net/ont/geosparql#wktLiteral': parseWKT,
   'http://www.openlinksw.com/schemas/virtrdf#Geometry': parseWKT,
-  'http://www.opengis.net/ont/geosparql#geoJSONLiteral': (geojson) => geojson,
+  'http://www.opengis.net/ont/geosparql#geoJSONLiteral': JSON.parse,
 };
 
 /**
