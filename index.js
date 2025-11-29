@@ -1,6 +1,52 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import parseWKT from 'wellknown';
+import proj4 from 'proj4';
+import { wktToGeoJSON } from 'betterknown';
+
+// Known SRID proj4 definitions. Add more as needed.
+const SRID_PROJ = {
+  // Proj4 defaults to longitude first axis order!!
+  '4326': '+proj=longlat +datum=WGS84 +ellps=WGS84 +no_defs',
+  // Web Mercator
+  '3857': '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0 +x_0=0 +y_0=0 +k=1.0 +units=m +no_defs',
+  // Belgium Lambert 1972
+  '31370': '+proj=lcc +lat_1=51.166667 +lat_2=49.833333 +lat_0=90 +lon_0=4.367486666666667 +x_0=150000.013 +y_0=5400088.438 +ellps=intl +units=m +no_defs',
+  // ETRS89 geographic
+  '4258': '+proj=longlat +ellps=GRS80 +no_defs',
+  // ETRS89 / LAEA Europe
+  '3035': '+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs',
+  // ETRS89 / UTM zone 32N
+  '25832': '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs',
+  // ETRS89 / UTM zone 33N
+  '25833': '+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs',
+};
+
+// Register known SRID projections with proj4
+for (const [srid, definition] of Object.entries(SRID_PROJ)) {
+  proj4.defs(`EPSG:${srid}`, definition);
+}
+
+// check if srid is already registered, if not try to fetch from epsg.io
+// and register it in the proj4 defs
+const ensureSridRegistered = async (srid) => {
+  const code = `EPSG:${srid}`;
+  // proj4.defs is a function; call it to check whether the definition already exists.
+  if (!proj4.defs(code)) {
+    try {
+      const response = await fetch(`https://epsg.io/${srid}.proj4`);
+      if (response.ok) {
+        const proj4Def = await response.text();
+        proj4.defs(code, proj4Def);
+        console.debug(`Registered SRID ${srid} with proj4: ${proj4Def}`);
+      } else {
+        console.warn(`Failed to fetch proj4 definition for SRID ${srid}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching proj4 definition for SRID ${srid}:`, error);
+    }
+  }
+};
+
 
 const basemaps = {
   // OpenStreetMap
@@ -33,6 +79,46 @@ const basemaps = {
   ),
 };
 
+const parseWKT = async (wkt) => {
+  console.debug({'Parsing WKT:': wkt});
+  // betterknown's wktToGeoJSON function already handles SRID prefixes
+  // and the <http://www.opengis.net/def/crs/EPSG/0/4326> prefix with lat/lon order
+  // so we can directly pass the WKT string to it.
+  if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/4326>')) {
+    return wktToGeoJSON(wkt, { proj: proj4 });
+  }
+  // if it has a prefix in the style of <http://www.opengis.net/def/crs/EPSG/0/xxxx>
+  // we need to extract xxxx and replace it with SRLD=xxxx;
+  // we also need to fetch the projection info from epsg.io and pass it to betterknown
+  if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/')) {
+    const match = wkt.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/(\d+)>\s*([\s\S]*)$/);
+    if (match) {
+      const epsgCode = match[1];
+      const wktWithoutPrefix = match[2].trim();
+      const wktWithSRID = `SRID=${epsgCode};${wktWithoutPrefix}`;
+      await ensureSridRegistered(epsgCode);
+      return wktToGeoJSON(wktWithSRID, { proj: proj4 });
+    }
+  }
+  // if there is a SRID=xxxx; prefix, ensure the srid is registered
+  // and pass to betterknown
+  if (wkt.startsWith('SRID=')) {
+    const match = wkt.match(/^SRID=(\d+);/);
+    if (match) {
+      const epsgCode = match[1];
+      await ensureSridRegistered(epsgCode);
+    }
+  }
+  return wktToGeoJSON(wkt, { proj: proj4 });
+}
+
+/**
+ * Map of supported RDF datatype URIs to converter functions.
+ * Converter functions accept a string (literal value) and may return synchronously or return a Promise.
+ * Synchronous converter example: JSON.parse (for geoJSONLiteral).
+ *
+ * @type {Object.<string, function(string): (Object|Promise<Object>)>}
+ */
 const conversions = {
   'http://www.opengis.net/ont/geosparql#wktLiteral': parseWKT,
   'http://www.openlinksw.com/schemas/virtrdf#Geometry': parseWKT,
@@ -46,36 +132,34 @@ const conversions = {
  * @param {string} wktColumn - The key in the binding objects that contains the WKT (Well-Known Text) geometry.
  * @returns {Object} A GeoJSON object representing the features.
  */
-const createGeojson = (bindings, column) => ({
+const createGeojson = async (bindings, column) => ({
   type: 'FeatureCollection',
-  features: bindings.map((item) => ({
-    type: 'Feature',
-    properties: item,
-    geometry: conversions[item[column].datatype]
-      ? conversions[item[column].datatype](item[column].value)
-      : { type: 'Point', coordinates: [] },
-  })),
+  features: await Promise.all(
+    bindings.map(async (item) => {
+      const converter = conversions[item[column].datatype];
+      const geometry = converter
+        ? await converter(item[column].value)
+        : { type: 'Point', coordinates: [] };
+      return {
+        type: 'Feature',
+        properties: item,
+        geometry,
+      };
+    }),
+  ),
 });
 
 /**
- * A plugin for YASR (Yet Another SPARQL Results) visualizer that displays geographic data on a map.
- * Requires Leaflet.js for map rendering.
+ * GeoPlugin: YASR plugin that displays geographic results in a Leaflet map.
  *
  * @class
- * @property {Object} yasr - The YASR instance this plugin is attached to
- * @property {number} priority - The plugin's priority in the YASR visualization order
- * @property {string} label - The display label for the plugin
- * @property {HTMLElement} container - The DOM container for the map
- * @property {L.Map} map - The Leaflet map instance
- * @property {L.LayerGroup} lg - The Leaflet layer group for results
- *
- * @description
- * This plugin creates an interactive map visualization for SPARQL query results that contain WKT (Well-Known Text)
- * geometric data. It plots the geometric data on an OpenStreetMap base layer and provides popup information
- * for each feature. The plugin automatically detects if it can handle the results by checking for types of columns
- * that are the `conversions` object.
  */
 class GeoPlugin {
+  /**
+   * Create a new GeoPlugin instance.
+   *
+   * @param {Object} yasr - The YASR instance the plugin is attached to. Expected to expose results.json.results.bindings and resultsEl.
+   */
   constructor(yasr) {
     this.yasr = yasr;
     this.priority = 30;
@@ -84,6 +168,10 @@ class GeoPlugin {
     this.updateColumns();
   }
 
+  /**
+   * Update detected geometry columns based on current YASR results.
+   * @returns {void}
+   */
   updateColumns() {
     const bindings = this.yasr?.results?.json?.results?.bindings ?? [];
     const firstRow = bindings[0] ?? {};
@@ -97,15 +185,123 @@ class GeoPlugin {
       .map((colName) => ({ colName, datatype: firstRow[colName].datatype }));
   }
 
-  draw() {
+  /**
+   * Called by YASR to render the visualization.
+   * @returns {Promise<void>}
+   */
+  async draw() {
     this.updateColumns();
-    this.updateMap();
+    await this.updateMap();
   }
 
-  updateMap() {
+  /**
+   * Build or update the Leaflet map with the current results.
+   * @returns {Promise<void>}
+   */
+  async updateMap() {
     if (!this.container) {
       this.container = document.createElement('div');
-      this.container.style.height = '500px';
+      this.container.style.height = '500px';      // ...existing code...
+      /**
+       * Ensure an EPSG SRID is registered with proj4. If not already defined, tries to fetch the proj4 definition
+       * from https://epsg.io and registers it.
+       *
+       * @param {string|number} srid - Numeric EPSG code (e.g. 4326 or "4326").
+       * @returns {Promise<void>} Resolves once registration is ensured (or if lookup fails).
+       */
+      const ensureSridRegistered = async (srid) => {
+        // ...existing code...
+      }
+      
+      /**
+       * Parse a WKT (or geoSPARQL) literal into a GeoJSON geometry object.
+       * This function is async because it will call ensureSridRegistered when an SRID URI or SRID= prefix is present.
+       *
+       * @param {string} wkt - The WKT/geoSPARQL literal to parse. May start with SRID=xxxx; or a <http://.../EPSG/...> prefix.
+       * @returns {Promise<GeoJSON.Geometry>} A GeoJSON geometry object (or throws/rejects if parsing fails).
+       */
+      const parseWKT = async (wkt) => {
+        // ...existing code...
+      }
+      
+      /**
+       * Map of supported RDF datatype URIs to converter functions.
+       * Converter functions accept a string (literal value) and may return synchronously or return a Promise.
+       * Synchronous converter example: JSON.parse (for geoJSONLiteral).
+       *
+       * @type {Object.<string, function(string): (Object|Promise<Object>)>}
+       */
+      const conversions = {
+        // ...existing code...
+      };
+      
+      /**
+       * Creates a GeoJSON FeatureCollection from SPARQL query bindings.
+       *
+       * @param {Array<Object>} bindings - SPARQL bindings array (each binding is an object mapping variable -> { type, value, datatype }).
+       * @param {string} column - The binding key that contains geometry literal (e.g. "geom").
+       * @returns {Promise<GeoJSON.FeatureCollection>} A Promise resolving to a GeoJSON FeatureCollection.
+       */
+      const createGeojson = async (bindings, column) => ({
+        // ...existing code...
+      });
+      
+      /**
+       * GeoPlugin: YASR plugin that displays geographic results in a Leaflet map.
+       *
+       * @class
+       */
+      class GeoPlugin {
+        /**
+         * Create a new GeoPlugin instance.
+         *
+         * @param {Object} yasr - The YASR instance the plugin is attached to. Expected to expose results.json.results.bindings and resultsEl.
+         */
+        constructor(yasr) {
+          // ...existing code...
+        }
+      
+        /**
+         * Update detected geometry columns based on current YASR results.
+         * @returns {void}
+         */
+        updateColumns() {
+          // ...existing code...
+        }
+      
+        /**
+         * Called by YASR to render the visualization.
+         * @returns {Promise<void>}
+         */
+        async draw() {
+          // ...existing code...
+        }
+      
+        /**
+         * Build or update the Leaflet map with the current results.
+         * @returns {Promise<void>}
+         */
+        async updateMap() {
+          // ...existing code...
+        }
+      
+        /**
+         * Return an element used as a icon for the plugin.
+         * @returns {HTMLElement}
+         */
+        getIcon() {
+          // ...existing code...
+        }
+      
+        /**
+         * Check whether current results contain supported geometry columns.
+         * @returns {boolean}
+         */
+        canHandleResults() {
+          // ...existing code...
+        }
+      }
+      // ...existing code...
       this.container.style.width = '100%';
       const map = L.map(this.container, {
         center: [50 + 38 / 60 + 28 / 3600, 4 + 40 / 60 + 5 / 3600],
@@ -124,7 +320,8 @@ class GeoPlugin {
     for (const geometryColumn of this.geometryColumns) {
       const colName = geometryColumn.colName;
 
-      const geojson = createGeojson(
+      // createGeojson may be async, awaiting ensures any fetch/registration is completed
+      const geojson = await createGeojson(
         this.yasr.results.json.results.bindings,
         colName,
       );
@@ -188,12 +385,20 @@ class GeoPlugin {
     }, 100);
   }
 
+  /**
+   * Return an element used as a icon for the plugin.
+   * @returns {HTMLElement}
+   */
   getIcon() {
     const icon = document.createElement('div');
     icon.innerHTML = '🌍';
     return icon;
   }
 
+  /**
+   * Check whether current results contain supported geometry columns.
+   * @returns {boolean}
+   */
   canHandleResults() {
     this.updateColumns();
     return this.geometryColumns && this.geometryColumns.length > 0;
