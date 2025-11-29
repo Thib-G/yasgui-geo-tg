@@ -80,7 +80,6 @@ const basemaps = {
 };
 
 const parseWKT = async (wkt) => {
-  console.debug({'Parsing WKT:': wkt});
   // betterknown's wktToGeoJSON function already handles SRID prefixes
   // and the <http://www.opengis.net/def/crs/EPSG/0/4326> prefix with lat/lon order
   // so we can directly pass the WKT string to it.
