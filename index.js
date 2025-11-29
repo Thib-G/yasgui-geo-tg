@@ -241,15 +241,23 @@ class GeoPlugin {
         },
         onEachFeature: (feature, layer) => {
           const p = feature.properties;
-          const popupContent = Object.keys(p).map(
+          // By default, show all properties in popup
+          const DEFAULT_CONTENT_FN = () => (Object.keys(p).map(
             (k) =>
               `<b>${k}:</b> ${
                 p[k].value.length > 120
                   ? p[k].value.substring(0, 120) + '...'
                   : p[k].value
               }`,
-          );
-          layer.bindPopup(popupContent.join('<br>'));
+          )).join('<br/>');
+          // If ?wktLabel property is present, use it as popup content
+          const popupContent = p.wktLabel?.value || DEFAULT_CONTENT_FN();
+          layer.bindPopup(popupContent);
+
+          // Add a tooltip if ?wktTooltip property is present
+          if (p.wktTooltip?.value) {
+            layer.bindTooltip(p.wktTooltip.value);
+          }
         },
         style: (feature) => {
           const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;

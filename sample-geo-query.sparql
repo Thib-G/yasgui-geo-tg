@@ -4,10 +4,10 @@ PREFIX spatialf: <http://jena.apache.org/function/spatial#>
 
 # Test transforming between coordinate systems using Jena vendor functions
 SELECT * WHERE {  
-  VALUES (?test_name ?lat ?lon) {
-    ("Antwerpen Centraal" 51.2133 4.4231)
-    ("Charleroi Central" 50.4050 4.4396)
-    ("Leuven Station" 50.8830 4.7147)
+  VALUES (?name ?lat ?lon ?wktColor) {
+    ("Antwerpen Centraal" 51.2133 4.4231 "blue")
+    ("Charleroi Central" 50.4050 4.4396 "red")
+    ("Leuven Station" 50.8830 4.7147 "green")
   }
   # Create point geometry from coordinates
   BIND(STRDT(CONCAT("POINT(", STR(?lon), " ", STR(?lat), ")"), geo:wktLiteral) AS ?point_no_crs_defined)
@@ -15,5 +15,6 @@ SELECT * WHERE {
   BIND(STRDT(CONCAT("<http://www.opengis.net/def/crs/EPSG/0/4326> POINT(", STR(?lat), " ", STR(?lon), ")"), geo:wktLiteral) AS ?point_opengis_4326)
   BIND(spatialf:transformSRS(?point_opengis_4326, "http://www.opengis.net/def/crs/EPSG/0/25831") AS ?point_utm_zone_31N)
   BIND(spatialf:transformSRS(?point_opengis_4326, "http://www.opengis.net/def/crs/EPSG/0/31370") AS ?point_lambert_belge_72)
+  BIND(?name AS ?wktTooltip)
+  BIND(CONCAT("Station: ", ?name) AS ?wktLabel)
 }
-ORDER BY ?test_name
