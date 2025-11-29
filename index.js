@@ -138,7 +138,7 @@ const createGeojson = async (bindings, column) => ({
       const converter = conversions[item[column].datatype];
       const geometry = converter
         ? await converter(item[column].value)
-        : { type: 'Point', coordinates: [] };
+        : null ;
       return {
         type: 'Feature',
         properties: item,
