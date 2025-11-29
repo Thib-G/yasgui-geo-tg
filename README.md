@@ -1,7 +1,7 @@
 # yasgui-geo-tg
 
 A geographic extension for YASGUI. This plugin allows the visualisation of SPARQL results on a map.
-It depends on [Leaflet](https://leafletjs.com/) and [wellknown](https://github.com/mapbox/wellknown).
+It depends on [Leaflet](https://leafletjs.com/) and now uses [betterknown](https://github.com/placemark/betterknown) instead of [wellknown](https://github.com/mapbox/wellknown).
 
 ## Installation
 
@@ -18,6 +18,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 
 - Geographic data visualization
 - Integration with YASGUI
+- On-the-fly reprojection using proj4 (and automatic fetching of epsg.io for unknown SRIDs).
 
 ## Usage: minimal example using vite
 Create a new vite app using
