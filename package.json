@@ -25,7 +25,14 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
+    "dev": "vite",
+    "build:demo": "vite build demo",
+    "preview:demo": "vite preview --port 5174",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@zazuko/yasgui": "^4.6.1"
   },
   "dependencies": {
     "betterknown": "^1.1.1",
