@@ -19,8 +19,38 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 - Geographic data visualization
 - Integration with YASGUI
 
-## Usage
+## Usage: minimal example using vite
+Create a new vite app using
 
+```bash
+npm create vite@latest yasgui-geo-demo -- --template vanilla
+cd yasgui-geo-demo
+```
+
+Copy/replace the files in the created folder (you can remove unuseful files created by vite but keep at least package.json):
+
+`./index.html`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yasgui with geo plugin</title>
+    <style>
+      html {
+        font-family: sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="yasgui"></div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
+```
+
+`./src/main.js`:
 ```javascript
 import '@zazuko/yasgui/build/yasgui.min.css';
 import Yasgui from '@zazuko/yasgui';
@@ -41,6 +71,17 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
   },
 });
 ```
+
+Install dependencies and run development server:
+```bash
+npm install @zazuko/yasgui
+npm install git+https://github.com/Thib-G/yasgui-geo-tg.git
+```
+
+```bash
+npm run dev
+```
+
 
 ## Demo
 
