@@ -83,6 +83,23 @@ npm install git+https://github.com/Thib-G/yasgui-geo-tg.git
 npm run dev
 ```
 
+Tip: to develop locally, you can replace
+```json
+  "dependencies": {
+    "@zazuko/yasgui": "^4.6.1",
+    "yasgui-geo-tg": "github:Thib-G/yasgui-geo-tg"
+  }
+```
+by
+```json
+  "dependencies": {
+    "@zazuko/yasgui": "^4.6.1",
+    "yasgui-geo-tg": "file://../yasgui-geo-tg"
+  }
+```
+if the demo runs on a sibling folder. 
+
+Note: you may need to run `npm install` inside the plugin's folder for it to work.
 
 ## Demo
 
