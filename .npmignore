@@ -1,0 +1,19 @@
+# Demo files
+demo/
+
+# Development files
+.vscode/
+*.sparql
+
+# Build output
+dist/
+node_modules/
+
+# Git files
+.git/
+.gitignore
+
+# Misc
+*.log
+readme2.md
+
