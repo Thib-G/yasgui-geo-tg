@@ -26,25 +26,62 @@ for (const [srid, definition] of Object.entries(SRID_PROJ)) {
   proj4.defs(`EPSG:${srid}`, definition);
 }
 
-// check if srid is already registered, if not try to fetch from epsg.io
-// and register it in the proj4 defs
+
+/**
+ * Ensure an EPSG SRID is registered with proj4.
+ * Uses an in-flight promise cache to avoid duplicate network requests
+ * and a failure cache to avoid repeated failed attempts.
+ *
+ * @param {string|number} srid - EPSG numeric code or string like '4326'
+ * @returns {Promise<void>} resolves once registration is ensured (or fetch fails)
+ */
+const sridFetchPromises = new Map();
+const sridFailedCache = new Set();
+
 const ensureSridRegistered = async (srid) => {
-  const code = `EPSG:${srid}`;
-  // proj4.defs is a function; call it to check whether the definition already exists.
-  if (!proj4.defs(code)) {
+  const code = `EPSG:${String(srid)}`;
+
+  // Already registered
+  if (proj4.defs(code)) return;
+
+  // If previous attempt failed, skip retrying (avoid repeated 404 calls).
+  if (sridFailedCache.has(code)) {
+    console.debug(`Skipping previously failed SRID fetch for ${code}`);
+    return;
+  }
+
+  // If there's already a fetch in progress for this SRID, reuse it
+  if (sridFetchPromises.has(code)) {
+    return sridFetchPromises.get(code);
+  }
+
+  const fetchPromise = (async () => {
     try {
+      console.debug(`Fetching proj4 definition for ${code}`);
       const response = await fetch(`https://epsg.io/${srid}.proj4`);
       if (response.ok) {
         const proj4Def = await response.text();
-        proj4.defs(code, proj4Def);
-        console.debug(`Registered SRID ${srid} with proj4: ${proj4Def}`);
+        if (proj4Def && !proj4.defs(code)) {
+          proj4.defs(code, proj4Def);
+          console.debug(`Registered SRID ${srid} with proj4: ${proj4Def}`);
+        }
       } else {
-        console.warn(`Failed to fetch proj4 definition for SRID ${srid}`);
+        console.warn(`Failed to fetch proj4 definition for SRID ${srid}, status: ${response.status}`);
+        // Mark as failed to avoid repeated attempts in current runtime
+        sridFailedCache.add(code);
       }
     } catch (error) {
       console.error(`Error fetching proj4 definition for SRID ${srid}:`, error);
+      // In case of transient network errors don't mark as permanently failed,
+      // so future attempts may still retry (optional: could add rate limiting)
+    } finally {
+      // Clean up in-flight cache
+      sridFetchPromises.delete(code);
     }
-  }
+  })();
+
+  sridFetchPromises.set(code, fetchPromise);
+  return fetchPromise;
 };
 
 
