@@ -11,13 +11,13 @@
     "geometry",
     "ontology"
   ],
-  "homepage": "https://github.com/MathiasVDA/yasgui-geo-tg#readme",
+  "homepage": "https://github.com/Thib-G/yasgui-geo-tg#readme",
   "bugs": {
-    "url": "https://github.com/MathiasVDA/yasgui-geo-tg/issues"
+    "url": "https://github.com/Thib-G/yasgui-geo-tg/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MathiasVDA/yasgui-geo-tg.git"
+    "url": "git+https://github.com/Thib-G/yasgui-geo-tg.git"
   },
   "license": "MIT",
   "author": "Thibaut Goelff",
