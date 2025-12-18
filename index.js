@@ -237,7 +237,8 @@ class GeoPlugin {
   async updateMap() {
     if (!this.container) {
       this.container = document.createElement('div');
-      this.container.style.height = '500px';
+      this.container.style.height = '100%';
+      this.container.style.minHeight = '500px';
       this.container.style.width = '100%';
       const map = L.map(this.container, {
         center: [50 + 38 / 60 + 28 / 3600, 4 + 40 / 60 + 5 / 3600],
